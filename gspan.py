@@ -19,119 +19,6 @@ def record_timestamp(func):
     return deco
 
 
-class DFSedge(object):
-    def __init__(self, frm, to, vevlb):
-        self.frm = frm
-        self.to = to
-        self.vevlb = vevlb
-
-    def __eq__(self, other):
-        return self.frm == other.frm and self.to == other.to and self.vevlb == other.vevlb
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __repr__(self):
-        return '(frm={}, to={}, vevlb={})'.format(self.frm, self.to, self.vevlb)
-
-
-class DFScode(list):
-    """
-    DFScode is a list of DFSedge.
-    """
-    def __init__(self):
-        self.rmpath = list()
-
-    def __eq__(self, other):
-        la, lb = len(self), len(other)
-        if la != lb:
-            return False
-        for i in range(la):
-            if self[i] != other[i]:
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __repr__(self):
-        return ''.join(['[', ','.join([str(dfsedge) for dfsedge in self]), ']'])
-
-    def push_back(self, frm, to, vevlb):
-        self.append(DFSedge(frm, to, vevlb))
-        return self
-
-    def to_graph(self, gid = VACANT_GRAPH_ID, is_undirected = True):
-        g = Graph(gid, is_undirected = is_undirected, eid_auto_increment = True)
-        for dfsedge in self:
-            frm, to, (vlb1, elb, vlb2) = dfsedge.frm, dfsedge.to, dfsedge.vevlb
-            if vlb1 != VACANT_VERTEX_LABEL:
-                g.add_vertex(frm, vlb1)
-            if vlb2 != VACANT_VERTEX_LABEL:
-                g.add_vertex(to, vlb2)
-            g.add_edge(AUTO_EDGE_ID, frm, to, elb)
-        return g
-
-    def from_graph(self, g):
-        pass
-
-    def build_rmpath(self):
-        self.rmpath = list()
-        old_frm = None
-        for i in range(len(self) - 1, -1, -1):
-            dfsedge = self[i]
-            frm, to, vevlb = dfsedge.frm, dfsedge.to, dfsedge.vevlb
-            if frm < to and (old_frm == None or to == old_frm):
-                self.rmpath.append(i)
-                old_frm = frm
-        return self
-
-    def get_num_vertices(self):
-        return len(set([dfsedge.frm for dfsedge in self] + [dfsedge.to for dfsedge in self]))
-
-
-class PDFS(object):
-    def __init__(self, gid=VACANT_GRAPH_ID, edge=None, prev=None):
-        self.gid = gid
-        self.edge = edge
-        self.prev = prev
-
-
-class Projected(list):
-    """docstring for Projected
-    Projected is a list of PDFS. Each element of Projected is a projection one frequent graph in one original graph.
-    """
-    def __init__(self):
-        super(Projected, self).__init__()
-
-    def push_back(self, gid, edge, prev):
-        self.append(PDFS(gid, edge, prev))
-        return self
-
-
-class History(object):
-    """docstring for History"""
-    def __init__(self, g, pdfs):
-        super(History, self).__init__()
-        self.edges = list()
-        self.vertices_used = collections.defaultdict(int)
-        self.edges_used = collections.defaultdict(int)
-        if pdfs == None:
-            return
-        while pdfs:
-            e = pdfs.edge
-            self.edges.append(e)
-            self.vertices_used[e.frm], self.vertices_used[e.to], self.edges_used[e.eid] = 1, 1, 1
-            pdfs = pdfs.prev
-        self.edges = self.edges[::-1]
-
-    def has_vertex(self, vid):
-        return self.vertices_used[vid] == 1
-
-    def has_edge(self, eid):
-        return self.edges_used[eid] == 1
-
-
 class gSpan(object):
     def __init__(self, database_file_name,
                  min_support=10,
@@ -532,3 +419,121 @@ class gSpan(object):
         print 'Mine:\t{} s'.format(time_deltas['run'] - time_deltas['read_graphs'])#, time_deltas['run_c'] - time_deltas['read_graphs_c'])
         print 'Total:\t{} s'.format(time_deltas['run'])#, time_deltas['run_c'])
         return self
+
+
+
+class DFSedge(object):
+    def __init__(self, frm, to, vevlb):
+        self.frm = frm
+        self.to = to
+        self.vevlb = vevlb
+
+    def __eq__(self, other):
+        return self.frm == other.frm\
+               and self.to == other.to\
+               and self.vevlb == other.vevlb
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return '(frm={0}, to={1}, vevlb={2})'.format(self.frm,
+                                                     self.to,
+                                                     self.vevlb)
+
+
+class DFScode(list):
+    """
+    DFScode is a list of DFSedge.
+    """
+    def __init__(self):
+        self.rmpath = list()
+
+    def __eq__(self, other):
+        la, lb = len(self), len(other)
+        if la != lb:
+            return False
+        for i in range(la):
+            if self[i] != other[i]:
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return ''.join(['[', ','.join([str(dfsedge) for dfsedge in self]), ']'])
+
+    def push_back(self, frm, to, vevlb):
+        self.append(DFSedge(frm, to, vevlb))
+        return self
+
+    def to_graph(self, gid = VACANT_GRAPH_ID, is_undirected = True):
+        g = Graph(gid, is_undirected = is_undirected, eid_auto_increment = True)
+        for dfsedge in self:
+            frm, to, (vlb1, elb, vlb2) = dfsedge.frm, dfsedge.to, dfsedge.vevlb
+            if vlb1 != VACANT_VERTEX_LABEL:
+                g.add_vertex(frm, vlb1)
+            if vlb2 != VACANT_VERTEX_LABEL:
+                g.add_vertex(to, vlb2)
+            g.add_edge(AUTO_EDGE_ID, frm, to, elb)
+        return g
+
+    def from_graph(self, g):
+        pass
+
+    def build_rmpath(self):
+        self.rmpath = list()
+        old_frm = None
+        for i in range(len(self) - 1, -1, -1):
+            dfsedge = self[i]
+            frm, to, vevlb = dfsedge.frm, dfsedge.to, dfsedge.vevlb
+            if frm < to and (old_frm == None or to == old_frm):
+                self.rmpath.append(i)
+                old_frm = frm
+        return self
+
+    def get_num_vertices(self):
+        return len(set([dfsedge.frm for dfsedge in self] + [dfsedge.to for dfsedge in self]))
+
+
+class PDFS(object):
+    def __init__(self, gid=VACANT_GRAPH_ID, edge=None, prev=None):
+        self.gid = gid
+        self.edge = edge
+        self.prev = prev
+
+
+class Projected(list):
+    """docstring for Projected
+    Projected is a list of PDFS. Each element of Projected is a projection one frequent graph in one original graph.
+    """
+    def __init__(self):
+        super(Projected, self).__init__()
+
+    def push_back(self, gid, edge, prev):
+        self.append(PDFS(gid, edge, prev))
+        return self
+
+
+class History(object):
+    """docstring for History"""
+    def __init__(self, g, pdfs):
+        super(History, self).__init__()
+        self.edges = list()
+        self.vertices_used = collections.defaultdict(int)
+        self.edges_used = collections.defaultdict(int)
+        if pdfs == None:
+            return
+        while pdfs:
+            e = pdfs.edge
+            self.edges.append(e)
+            self.vertices_used[e.frm], self.vertices_used[e.to], self.edges_used[e.eid] = 1, 1, 1
+            pdfs = pdfs.prev
+        self.edges = self.edges[::-1]
+
+    def has_vertex(self, vid):
+        return self.vertices_used[vid] == 1
+
+    def has_edge(self, eid):
+        return self.edges_used[eid] == 1
