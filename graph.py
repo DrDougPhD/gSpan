@@ -11,12 +11,12 @@ class Edge(object):
         self.eid = eid
         self.frm = frm
         self.to = to
-        self.elb = elb
+        self.elb = self.label = elb
 
 class Vertex(object):
-    def __init__(self, vid = VACANT_VERTEX_ID, vlb = VACANT_VERTEX_LABEL):
+    def __init__(self, vid=VACANT_VERTEX_ID, vlb=VACANT_VERTEX_LABEL):
         self.vid = vid
-        self.vlb = vlb
+        self.vlb = self.label = vlb
         self.edges = dict()
 
     def add_edge(self, eid, frm, to, elb):
@@ -29,7 +29,7 @@ class Graph(object):
         self.is_undirected = is_undirected
         self.vertices = dict()
         self.edge_label_set = collections.defaultdict(set)
-        self.set_of_vlb = collections.defaultdict(set)
+        self.vertex_label_set = collections.defaultdict(set)
         self.eid_auto_increment = eid_auto_increment
         self.counter = itertools.count()
 
@@ -39,8 +39,9 @@ class Graph(object):
     def add_vertex(self, vid, vlb):
         if vid in self.vertices:
             return self
+
         self.vertices[vid] = Vertex(vid, vlb)
-        self.set_of_vlb[vlb].add(vid)
+        self.vertex_label_set[vlb].add(vid)
         return self
 
     def add_edge(self, eid, frm, to, edge_label):
@@ -58,9 +59,8 @@ class Graph(object):
         if self.is_undirected:
             self.vertices[to].add_edge(eid, to, frm, edge_label)
             self.edge_label_set[edge_label].add((to, frm))
-            
-        return self
 
+        return self
 
     def remove_vertex(self, vid):
         if self.is_undirected:
@@ -82,7 +82,7 @@ class Graph(object):
             e = v.edges[to]
             self.edge_label_set[e.elb].discard((vid, to))
 
-        self.set_of_vlb[v.vlb].discard(vid)
+        self.vertex_label_set[v.vlb].discard(vid)
         del self.vertices[vid]
         return self
 
@@ -101,29 +101,29 @@ class Graph(object):
         return self
 
     def remove_vertex_with_vlb(self, vlb):
-        for vid in list(self.set_of_vlb[vlb]):
+        for vid in list(self.vertex_label_set[vlb]):
             self.remove_vertex(vid)
         return self
 
     def remove_edge_with_vevlb(self, vevlb):
         vlb1, elb, vlb2 = vevlb
         for frm, to in list(self.edge_label_set[elb]):
-            if frm in self.set_of_vlb[vlb1] and to in self.set_of_vlb[vlb2]:
+            if frm in self.vertex_label_set[vlb1] and to in self.vertex_label_set[vlb2]:
                 self.remove_edge(frm, to)
         return self
 
     def display(self):
-        print 't # {}'.format(self.gid)
+        print('t # {}'.format(self.gid))
         for vid in self.vertices:
-            print 'v {} {}'.format(vid, self.vertices[vid].vlb)
+            print('v {} {}'.format(vid, self.vertices[vid].vlb))
         for frm in self.vertices:
             edges = self.vertices[frm].edges
             for to in edges:
                 if self.is_undirected:
                     if frm < to:
-                        print 'e {} {} {}'.format(frm, to, edges[to].elb)
+                        print('e {} {} {}'.format(frm, to, edges[to].elb))
                 else:
-                    print 'e {} {} {}'.format(frm, to, edges[to].elb)
+                    print('e {} {} {}'.format(frm, to, edges[to].elb))
 
     def plot(self):
         try:
