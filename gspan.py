@@ -294,7 +294,7 @@ class gSpan(object):
             return
         g = self.DFScode.to_graph(gid = self.counter.next(), is_undirected = self.is_undirected)
         g.display()
-        print('\nSupport:', self.support)
+        print('\nSupport: {}'.format(self.support))
 
         if self.visualize:
             g.plot()
@@ -356,7 +356,7 @@ class gSpan(object):
         return result
 
     def is_min(self):
-        if self.verbose: print 'is_min: checking', self.DFScode
+        if self.verbose: print('is_min: checking {}'.format(self.DFScode))
         if len(self.DFScode) == 1:
             return True
         g = self.DFScode.to_graph(gid = VACANT_GRAPH_ID, is_undirected = self.is_undirected)
@@ -468,9 +468,8 @@ class DFSedge(object):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return '(frm={0}, to={1}, vevlb={2})'.format(self.frm,
-                                                     self.to,
-                                                     self.vevlb)
+        return '({0: >3}, {1: >3}, {2: >3}, {3: >3}, {4: >3})'.format(
+            self.frm, self.to, *self.vevlb)
 
 
 class DFScode(list):
