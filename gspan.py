@@ -264,7 +264,7 @@ class gSpan(object):
                 DFSedge(maxtoc,
                         to,
                         (VACANT_VERTEX_LABEL, elb, VACANT_VERTEX_LABEL)))
-            self.subgraph_mining(backward_root[(to, elb)])
+            self.subgraph_mining(projected=backward_root[(to, elb)])
             self.DFScode.pop()
 
         # forward
