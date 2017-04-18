@@ -183,64 +183,15 @@ class gSpan(object):
             self.subgraph_mining(projected)
             self.DFScode.pop()
 
-    def subgraph_mining(self, projected):
-        self.support = self.get_support(projected)
-        if self.support < self.min_support:
-            #if self.verbose: print 'subgraph_mining: < min_support', self.DFScode
-            return
-        if not self.is_min():
-            #if self.verbose: print 'subgraph_mining: not min'
-            return
-        self.report(projected)
-
-        num_vertices = self.DFScode.get_num_vertices()
-        self.DFScode.build_rmpath()
-        rmpath = self.DFScode.rmpath
-        maxtoc = self.DFScode[rmpath[0]].to
-        min_vlb = self.DFScode[0].vevlb[0]
-
-        forward_root = collections.defaultdict(Projected)
-        backward_root = collections.defaultdict(Projected)
-        for p in projected:
-            g = self.graphs[p.gid]
-            history = History(g, p)
-            # backward
-            for rmpath_i in rmpath[::-1]:
-                e = self.get_backward_edge(g, history.edges[rmpath_i], history.edges[rmpath[0]], history)
-                if e != None:
-                    backward_root[(self.DFScode[rmpath_i].frm, e.elb)].append(PDFS(g.gid, e, p))
-            # pure forward
-            if num_vertices >= self.max_num_vertices:
-                continue
-            edges = self.get_forward_pure_edges(g, history.edges[rmpath[0]], min_vlb, history)
-            for e in edges:
-                forward_root[(maxtoc, e.elb, g.vertices[e.to].vlb)].append(PDFS(g.gid, e, p))
-            # rmpath forward
-            for rmpath_i in rmpath:
-                edges = self.get_forward_rmpath_edges(g, history.edges[rmpath_i], min_vlb, history)
-                for e in edges:
-                    forward_root[(self.DFScode[rmpath_i].frm, e.elb, g.vertices[e.to].vlb)].append(PDFS(g.gid, e, p))
-
-        # backward
-        for to, elb in backward_root:
-            self.DFScode.append(DFSedge(maxtoc, to, (VACANT_VERTEX_LABEL, elb, VACANT_VERTEX_LABEL)))
-            self.subgraph_mining(backward_root[(to, elb)])
-            self.DFScode.pop()
-        # forward
-        # if num_vertices >= self.max_num_vertices: # no need. because forward_root has no element.
-        #     return
-        for frm, elb, vlb2 in forward_root:
-            self.DFScode.append(DFSedge(frm, maxtoc + 1, (VACANT_VERTEX_LABEL, elb, vlb2)))
-            self.subgraph_mining(forward_root[(frm, elb, vlb2)])
-            self.DFScode.pop()
-
-        return self
-
     @record_timestamp
     def read_graphs(self):
+        # TODO: each graph could have its own file
+        # TODO: accept other graph file formats
+
         self.graphs = dict()
         with open(self.database_file_name) as f:
-            lines = map(lambda x:x.strip(), f.readlines())
+            lines = map(lambda x: x.strip(),
+                        f.readlines())
             nlines = len(lines)
 
             tgraph, graph_cnt, edge_cnt = None, 0, 0
@@ -248,13 +199,20 @@ class gSpan(object):
                 cols = line.split(' ')
 
                 if cols[0] == 't':
-                    if tgraph != None:
+                    if tgraph is not None:
                         self.graphs[graph_cnt] = tgraph
                         graph_cnt += 1
                         tgraph = None
+
                     if cols[-1] == '-1' or graph_cnt >= self.max_ngraphs:
+                        # either the end of the file has been reached,
+                        # or sufficiently many graphs have been read from the
+                        #  file
                         break
-                    tgraph = Graph(graph_cnt, is_undirected = self.is_undirected, eid_auto_increment = True)
+
+                    tgraph = Graph(gid=graph_cnt,
+                                   is_undirected=self.is_undirected,
+                                   eid_auto_increment=True)
 
                 elif cols[0] == 'v':
                     tgraph.add_vertex(cols[1], cols[2])
@@ -262,7 +220,8 @@ class gSpan(object):
                 elif cols[0] == 'e':
                     tgraph.add_edge(AUTO_EDGE_ID, cols[1], cols[2], cols[3])
                     
-            if tgraph != None: # adapt to input files that do not end with 't # -1'
+            if tgraph is not None:
+                # adapt to input files that do not end with 't   -1'
                 self.graphs[graph_cnt] = tgraph
 
         return self
@@ -320,7 +279,58 @@ class gSpan(object):
                 result.append(e)
         return result
 
+    def subgraph_mining(self, projected):
+        self.support = self.get_support(projected)
+        if self.support < self.min_support:
+            #if self.verbose: print 'subgraph_mining: < min_support', self.DFScode
+            return
+        if not self.is_min():
+            #if self.verbose: print 'subgraph_mining: not min'
+            return
+        self.report(projected)
 
+        num_vertices = self.DFScode.get_num_vertices()
+        self.DFScode.build_rmpath()
+        rmpath = self.DFScode.rmpath
+        maxtoc = self.DFScode[rmpath[0]].to
+        min_vlb = self.DFScode[0].vevlb[0]
+
+        forward_root = collections.defaultdict(Projected)
+        backward_root = collections.defaultdict(Projected)
+        for p in projected:
+            g = self.graphs[p.gid]
+            history = History(g, p)
+            # backward
+            for rmpath_i in rmpath[::-1]:
+                e = self.get_backward_edge(g, history.edges[rmpath_i], history.edges[rmpath[0]], history)
+                if e != None:
+                    backward_root[(self.DFScode[rmpath_i].frm, e.elb)].append(PDFS(g.gid, e, p))
+            # pure forward
+            if num_vertices >= self.max_num_vertices:
+                continue
+            edges = self.get_forward_pure_edges(g, history.edges[rmpath[0]], min_vlb, history)
+            for e in edges:
+                forward_root[(maxtoc, e.elb, g.vertices[e.to].vlb)].append(PDFS(g.gid, e, p))
+            # rmpath forward
+            for rmpath_i in rmpath:
+                edges = self.get_forward_rmpath_edges(g, history.edges[rmpath_i], min_vlb, history)
+                for e in edges:
+                    forward_root[(self.DFScode[rmpath_i].frm, e.elb, g.vertices[e.to].vlb)].append(PDFS(g.gid, e, p))
+
+        # backward
+        for to, elb in backward_root:
+            self.DFScode.append(DFSedge(maxtoc, to, (VACANT_VERTEX_LABEL, elb, VACANT_VERTEX_LABEL)))
+            self.subgraph_mining(backward_root[(to, elb)])
+            self.DFScode.pop()
+        # forward
+        # if num_vertices >= self.max_num_vertices: # no need. because forward_root has no element.
+        #     return
+        for frm, elb, vlb2 in forward_root:
+            self.DFScode.append(DFSedge(frm, maxtoc + 1, (VACANT_VERTEX_LABEL, elb, vlb2)))
+            self.subgraph_mining(forward_root[(frm, elb, vlb2)])
+            self.DFScode.pop()
+
+        return self
 
     def get_support(self, projected):
         return len(set([pdfs.gid for pdfs in projected]))
