@@ -56,15 +56,17 @@ def main():
     if len(sys.argv) == 1 or '-h' in sys.argv:
         usage()
         exit()
+
     if '-t' in sys.argv:
         opt_dict = parse_args('-n 2 -s 2 -l 2 -u 3 -v'.split(), default_args)
+
     else:
         opt_dict = parse_args(sys.argv[1:], default_args)
 
     if not os.path.exists(opt_dict['database_file_name']):
         print('{} does not exist.'.format(opt_dict['database_file_name']))
         exit()
-        
+
     gs = gSpan(database_file_name=opt_dict['database_file_name'],
                min_support=opt_dict['-s'],
                min_num_vertices=opt_dict['-l'],
