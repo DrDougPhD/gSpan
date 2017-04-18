@@ -8,7 +8,7 @@ import logging
 
 from gspan import gSpan
 
-logger = logging.getLogger('gspan')
+logger = logging.getLogger(__name__)
 
 
 default_args = {
