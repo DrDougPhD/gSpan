@@ -28,7 +28,7 @@ class Graph(object):
         self.gid = gid
         self.is_undirected = is_undirected
         self.vertices = dict()
-        self.set_of_elb = collections.defaultdict(set)
+        self.edge_label_set = collections.defaultdict(set)
         self.set_of_vlb = collections.defaultdict(set)
         self.eid_auto_increment = eid_auto_increment
         self.counter = itertools.count()
@@ -43,16 +43,22 @@ class Graph(object):
         self.set_of_vlb[vlb].add(vid)
         return self
 
-    def add_edge(self, eid, frm, to, elb):
-        if frm is self.vertices and to in self.vertices and to in self.vertices[frm].edges:
+    def add_edge(self, eid, frm, to, edge_label):
+        if frm is self.vertices\
+            and to in self.vertices\
+            and to in self.vertices[frm].edges:
                 return self
+
         if self.eid_auto_increment:
             eid = self.counter.next()
-        self.vertices[frm].add_edge(eid, frm, to, elb)
-        self.set_of_elb[elb].add((frm, to))
+
+        self.vertices[frm].add_edge(eid, frm, to, edge_label)
+        self.edge_label_set[edge_label].add((frm, to))
+
         if self.is_undirected:
-            self.vertices[to].add_edge(eid, to, frm, elb)
-            self.set_of_elb[elb].add((to, frm))
+            self.vertices[to].add_edge(eid, to, frm, edge_label)
+            self.edge_label_set[edge_label].add((to, frm))
+            
         return self
 
 
@@ -61,20 +67,20 @@ class Graph(object):
             v = self.vertices[vid]
             for to in v.edges.keys():
                 e = v.edges[to] # (vid, to) and (to, vid) have same elb
-                self.set_of_elb[e.elb].discard((to, vid))
+                self.edge_label_set[e.elb].discard((to, vid))
                 del self.vertices[to].edges[vid]
         else:
             for frm in self.vertices.keys():
                 v = self.vertices[frm]
                 if vid in v.edges.keys():
                     e = self.vertices[frm].edges[vid]
-                    self.set_of_elb[e.elb].discard((frm, vid))
+                    self.edge_label_set[e.elb].discard((frm, vid))
                     del self.vertices[frm].edges[vid]
 
         v = self.vertices[vid]
         for to in v.edges.keys():
             e = v.edges[to]
-            self.set_of_elb[e.elb].discard((vid, to))
+            self.edge_label_set[e.elb].discard((vid, to))
 
         self.set_of_vlb[v.vlb].discard(vid)
         del self.vertices[vid]
@@ -82,15 +88,15 @@ class Graph(object):
 
     def remove_edge(self, frm, to):
         elb = self.vertices[frm].edges[to].elb
-        self.set_of_elb[elb].discard((frm, to))
+        self.edge_label_set[elb].discard((frm, to))
         del self.vertices[frm].edges[to]
         if self.is_undirected:
-            self.set_of_elb[elb].discard((to, frm))
+            self.edge_label_set[elb].discard((to, frm))
             del self.vertices[to].edges[frm]
         return self
 
     def remove_edge_with_elb(self, elb):
-        for frm, to in list(self.set_of_elb[elb]): # use list. otherwise, 'Set changed size during iteration'
+        for frm, to in list(self.edge_label_set[elb]): # use list. otherwise, 'Set changed size during iteration'
             self.remove_edge(frm, to)
         return self
 
@@ -101,7 +107,7 @@ class Graph(object):
 
     def remove_edge_with_vevlb(self, vevlb):
         vlb1, elb, vlb2 = vevlb
-        for frm, to in list(self.set_of_elb[elb]):
+        for frm, to in list(self.edge_label_set[elb]):
             if frm in self.set_of_vlb[vlb1] and to in self.set_of_vlb[vlb2]:
                 self.remove_edge(frm, to)
         return self
