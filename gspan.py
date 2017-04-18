@@ -91,7 +91,7 @@ class DFScode(list):
 
 
 class PDFS(object):
-    def __init__(self, gid = VACANT_GRAPH_ID, edge = None, prev = None):
+    def __init__(self, gid=VACANT_GRAPH_ID, edge=None, prev=None):
         self.gid = gid
         self.edge = edge
         self.prev = prev
@@ -170,12 +170,14 @@ class gSpan(object):
         self.generate_1edge_frequent_subgraphs()
         if self.max_num_vertices < 2:
             return
+
         root = collections.defaultdict(Projected)
         for gid, g in self.graphs.items():
             for vid, v in g.vertices.items():
                 edges = self.get_forward_root_edges(g, vid)
                 for e in edges:
-                    root[(v.vlb, e.elb, g.vertices[e.to].vlb)].append(PDFS(gid, e, None))
+                    root[(v.label, e.label, g.vertices[e.to].label)].append(
+                        PDFS(gid, e, None))
 
         #if self.verbose: print 'run:', root.keys()
         for vevlb, projected in root.items():
@@ -228,34 +230,62 @@ class gSpan(object):
 
     @record_timestamp
     def generate_1edge_frequent_subgraphs(self):
-        vlb_counter = collections.Counter()
+        vertex_label_counter = collections.Counter()
         vevlb_counter = collections.Counter()
-        vlb_counted = set()
+        counted_vertex_labels = set()
         vevlb_counted = set()
+
+        # Count the support of vertex labels and vertex-edge-vertex label
+        # patterns across all databases.
         for g in self.graphs.values():
             for v in g.vertices.values():
-                vlb_counter[v.vlb] += 1 if (g.gid, v.vlb) not in vlb_counted else 0
-                vlb_counted.add((g.gid, v.vlb))
+
+                # If the vertex label has not yet been observed in this graph,
+                # then increment the support of the vertex (label)
+                # TODO: inefficient, better to use a hashmap
+                if (g.gid, v.label) not in counted_vertex_labels:
+                    vertex_label_counter[v.label] += 1
+
+                # Make note that this particular vertex label was found in
+                # this graph
+                counted_vertex_labels.add((g.gid, v.label))
+
+                # For each neighbor of the current vertex, if the
+                # vertex-edge-vertex label triple has not already been
+                # encountered in this graph, increment the support for it.
                 for to, e in v.edges.items():
-                    vlb1, vlb2 = v.vlb, g.vertices[to].vlb
+                    vlb1, vlb2 = v.label, g.vertices[to].label
+
                     if self.is_undirected and vlb1 > vlb2:
                         vlb1, vlb2 = vlb2, vlb1
-                    vevlb_counter[(vlb1, e.elb, vlb2)] += 1 if (g.gid, (vlb1, e.elb, vlb2)) not in vevlb_counter else 0
+
+                    if (g.gid, (vlb1, e.elb, vlb2)) not in vevlb_counter:
+                        vevlb_counter[(vlb1, e.elb, vlb2)] += 1
+
+                    # Make a note that this particular label triple has been
+                    # encountered.
                     vevlb_counted.add((g.gid, (vlb1, e.elb, vlb2)))
+
         # remove infrequent vertices or add frequent vertices
-        for vlb, cnt in vlb_counter.items():
+        for vertex_label, cnt in vertex_label_counter.items():
             if cnt >= self.min_support:
-                g = Graph(gid = self.counter.next(), is_undirected = self.is_undirected)
-                g.add_vertex(0, vlb)
+                g = Graph(gid=self.counter.next(),
+                          is_undirected=self.is_undirected)
+                g.add_vertex(0, vertex_label)
                 self.frequent_size1_subgraphs.append(g)
+
                 if self.min_num_vertices <= 1:
-                    self.report_size1(g, support = cnt)
+                    self.report_size1(g, support=cnt)
+
             else:
                 continue
                 for g in self.graphs.values():
-                    g.remove_vertex_with_vlb(vlb)
+                    # for each graph, remove vertices with the infrequent label
+                    g.remove_vertex_with_vlb(vertex_label)
+
         if self.min_num_vertices > 1:
             self.counter = itertools.count()
+
         # remove edges of infrequent vev or ...
         for vevlb, cnt in vevlb_counter.items():
             if cnt >= self.min_support:
@@ -337,8 +367,8 @@ class gSpan(object):
 
     def report_size1(self, g, support):
         g.display()
-        print '\nSupport: {}'.format(support)
-        print '\n-----------------\n'
+        print('\nSupport: {}'.format(support))
+        print('-'*20)
 
     def report(self, projected):
         self.frequent_subgraphs.append(copy.copy(self.DFScode))
@@ -346,12 +376,15 @@ class gSpan(object):
             return
         g = self.DFScode.to_graph(gid = self.counter.next(), is_undirected = self.is_undirected)
         g.display()
-        print '\nSupport: {}'.format(self.support)
+        print('\nSupport:', self.support)
+
         if self.visualize:
             g.plot()
+
         if self.where:
             print 'where:', list(set([p.gid for p in projected]))
-        print '\n-----------------\n'
+
+        print('-' * 20)
 
     def get_backward_edge(self, g, e1, e2, history):
         if self.is_undirected and e1 == e2:
