@@ -189,11 +189,13 @@ class gSpan(object):
         #return copy.copy(self.frequent_subgraphs)
 
     def get_forward_root_edges(self, g, frm):
+        # TODO: why are we obtaining only the forward edges?
         result = []
         v_frm = g.vertices[frm]
         for to, e in v_frm.edges.items():
-            if (not self.is_undirected) or v_frm.vlb <= g.vertices[to].vlb:
+            if (not self.is_undirected) or v_frm.label <= g.vertices[to].label:
                 result.append(e)
+
         return result
 
     def subgraph_mining(self, projected):
@@ -201,16 +203,18 @@ class gSpan(object):
         if self.support < self.min_support:
             #if self.verbose: print 'subgraph_mining: < min_support', self.DFScode
             return
+
         if not self.is_min():
             #if self.verbose: print 'subgraph_mining: not min'
             return
+
         self.report(projected)
 
         num_vertices = self.DFScode.get_num_vertices()
         self.DFScode.build_rmpath()
         rmpath = self.DFScode.rmpath
         maxtoc = self.DFScode[rmpath[0]].to
-        min_vlb = self.DFScode[0].vevlb[0]
+        min_vertex_label = self.DFScode[0].vevlb[0]
 
         forward_root = collections.defaultdict(Projected)
         backward_root = collections.defaultdict(Projected)
@@ -219,31 +223,58 @@ class gSpan(object):
             history = History(g, p)
             # backward
             for rmpath_i in rmpath[::-1]:
-                e = self.get_backward_edge(g, history.edges[rmpath_i], history.edges[rmpath[0]], history)
-                if e != None:
-                    backward_root[(self.DFScode[rmpath_i].frm, e.elb)].append(PDFS(g.gid, e, p))
+                e = self.get_backward_edge(g,
+                                           history.edges[rmpath_i],
+                                           history.edges[rmpath[0]],
+                                           history)
+                if e is not None:
+                    backward_root[(self.DFScode[rmpath_i].frm, e.elb)].append(
+                        PDFS(g.gid, e, p))
+
             # pure forward
             if num_vertices >= self.max_num_vertices:
                 continue
-            edges = self.get_forward_pure_edges(g, history.edges[rmpath[0]], min_vlb, history)
+
+            edges = self.get_forward_pure_edges(g,
+                                                history.edges[rmpath[0]],
+                                                min_vertex_label,
+                                                history)
+
             for e in edges:
-                forward_root[(maxtoc, e.elb, g.vertices[e.to].vlb)].append(PDFS(g.gid, e, p))
+                forward_root[(maxtoc, e.elb, g.vertices[e.to].vlb)].append(
+                    PDFS(g.gid, e, p))
+
             # rmpath forward
             for rmpath_i in rmpath:
-                edges = self.get_forward_rmpath_edges(g, history.edges[rmpath_i], min_vlb, history)
+                edges = self.get_forward_rmpath_edges(g,
+                                                      history.edges[rmpath_i],
+                                                      min_vertex_label,
+                                                      history)
+
                 for e in edges:
-                    forward_root[(self.DFScode[rmpath_i].frm, e.elb, g.vertices[e.to].vlb)].append(PDFS(g.gid, e, p))
+                    forward_root[(
+                        self.DFScode[rmpath_i].frm,
+                        e.elb,
+                        g.vertices[e.to].vlb
+                    )].append(PDFS(g.gid, e, p))
 
         # backward
         for to, elb in backward_root:
-            self.DFScode.append(DFSedge(maxtoc, to, (VACANT_VERTEX_LABEL, elb, VACANT_VERTEX_LABEL)))
+            self.DFScode.append(
+                DFSedge(maxtoc,
+                        to,
+                        (VACANT_VERTEX_LABEL, elb, VACANT_VERTEX_LABEL)))
             self.subgraph_mining(backward_root[(to, elb)])
             self.DFScode.pop()
+
         # forward
         # if num_vertices >= self.max_num_vertices: # no need. because forward_root has no element.
         #     return
         for frm, elb, vlb2 in forward_root:
-            self.DFScode.append(DFSedge(frm, maxtoc + 1, (VACANT_VERTEX_LABEL, elb, vlb2)))
+            self.DFScode.append(
+                DFSedge(frm,
+                        maxtoc+1,
+                        (VACANT_VERTEX_LABEL, elb, vlb2)))
             self.subgraph_mining(forward_root[(frm, elb, vlb2)])
             self.DFScode.pop()
 
