@@ -151,7 +151,7 @@ class gSpan(object):
 
                     # Make a note that this particular label triple has been
                     # encountered.
-                    vevlb_counted.add((g.gid, (vlb1, e.elb, vlb2)))
+                    vevlb_counted.add((g.gid, (vlb1, e.label, vlb2)))
 
         # remove infrequent vertices or add frequent vertices
         for vertex_label, cnt in vertex_label_counter.items():
@@ -523,7 +523,7 @@ class DFScode(list):
                 g.add_vertex(to, to_vertex_label)
 
             g.add_edge(AUTO_EDGE_ID, frm, to, edge_label)
-            
+
         return g
 
     def from_graph(self, g):
@@ -548,7 +548,9 @@ class DFScode(list):
         return self.right_most_path
 
     def get_num_vertices(self):
-        return len(set([dfsedge.frm for dfsedge in self] + [dfsedge.to for dfsedge in self]))
+        from_vertices = [dfsedge.frm for dfsedge in self]
+        to_vertices = [dfsedge.to for dfsedge in self]
+        return len(set(from_vertices + to_vertices))
 
 
 class PDFS(object):
