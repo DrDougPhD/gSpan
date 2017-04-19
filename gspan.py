@@ -211,8 +211,8 @@ class gSpan(object):
         self.report(projected)
 
         num_vertices = self.DFScode.get_num_vertices()
-        self.DFScode.build_rmpath()
-        rmpath = self.DFScode.rmpath
+        self.DFScode.build_right_most_path()
+        rmpath = self.DFScode.right_most_path
         maxtoc = self.DFScode[rmpath[0]].to
         min_vertex_label = self.DFScode[0].vevlb[0]
 
@@ -373,8 +373,8 @@ class gSpan(object):
         #     return False
 
         def project_is_min(projected):
-            DFScode_min.build_rmpath()
-            rmpath = DFScode_min.rmpath
+            DFScode_min.build_right_most_path()
+            rmpath = DFScode_min.right_most_path
             min_vlb = DFScode_min[0].vevlb[0]
             maxtoc = DFScode_min[rmpath[0]].to
 
@@ -391,6 +391,7 @@ class gSpan(object):
                         backward_root[e.elb].append(PDFS(g.gid, e, p))
                         newto = DFScode_min[rmpath[i]].frm
                         flag = True
+
             #if self.verbose: print 'project_is_min: 1', flag, DFScode_min.get_num_vertices(), len(DFScode_min)
             if flag:
                 backward_min_elb = min(backward_root.keys())
@@ -399,6 +400,7 @@ class gSpan(object):
                 #if self.verbose: print 'project_is_min: 5', idx, len(self.DFScode)
                 if self.DFScode[idx] != DFScode_min[idx]:
                     return False
+
                 return project_is_min(backward_root[backward_min_elb])
 
             forward_root = collections.defaultdict(Projected)
@@ -411,6 +413,7 @@ class gSpan(object):
                     newfrm = maxtoc
                     for e in edges:
                         forward_root[(e.elb, g.vertices[e.to].vlb)].append(PDFS(g.gid, e, p))
+
             #if self.verbose: print 'project_is_min: 2', flag
             for rmpath_i in rmpath:
                 if flag:
@@ -477,7 +480,7 @@ class DFScode(list):
     DFScode is a list of DFSedge.
     """
     def __init__(self):
-        self.rmpath = list()
+        self.right_most_path = list()
 
     def __eq__(self, other):
         la, lb = len(self), len(other)
@@ -512,15 +515,22 @@ class DFScode(list):
     def from_graph(self, g):
         pass
 
-    def build_rmpath(self):
-        self.rmpath = list()
-        old_frm = None
-        for i in range(len(self) - 1, -1, -1):
+    def build_right_most_path(self):
+        """
+        Starting from the right-most vertex, construct the right-most path
+        in a bottom-up manner by iterating through each element of the DFS
+        code.
+        :return: 
+        """
+        self.right_most_path = list()
+        old_from_vertex = None
+
+        for i in range(len(self)-1, -1, -1):
             dfsedge = self[i]
-            frm, to, vevlb = dfsedge.frm, dfsedge.to, dfsedge.vevlb
-            if frm < to and (old_frm == None or to == old_frm):
-                self.rmpath.append(i)
-                old_frm = frm
+            frm, to = dfsedge.frm, dfsedge.to
+            if frm < to and (old_from_vertex is None or to == old_from_vertex):
+                self.right_most_path.append(i)
+                old_from_vertex = frm
         return self
 
     def get_num_vertices(self):
