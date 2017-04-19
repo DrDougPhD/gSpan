@@ -211,9 +211,8 @@ class gSpan(object):
         self.report(projected)
 
         num_vertices = self.DFScode.get_num_vertices()
-        self.DFScode.build_right_most_path()
-        rmpath = self.DFScode.right_most_path
-        maxtoc = self.DFScode[rmpath[0]].to
+        right_most_path = self.DFScode.build_right_most_path()
+        maxtoc = self.DFScode[right_most_path[0]].to
         min_vertex_label = self.DFScode[0].vevlb[0]
 
         forward_root = collections.defaultdict(Projected)
@@ -222,10 +221,10 @@ class gSpan(object):
             g = self.graphs[p.gid]
             history = History(g, p)
             # backward
-            for rmpath_i in rmpath[::-1]:
+            for rmpath_i in right_most_path[::-1]:
                 e = self.get_backward_edge(g,
                                            history.edges[rmpath_i],
-                                           history.edges[rmpath[0]],
+                                           history.edges[right_most_path[0]],
                                            history)
                 if e is not None:
                     backward_root[(self.DFScode[rmpath_i].frm, e.elb)].append(
@@ -236,7 +235,7 @@ class gSpan(object):
                 continue
 
             edges = self.get_forward_pure_edges(g,
-                                                history.edges[rmpath[0]],
+                                                history.edges[right_most_path[0]],
                                                 min_vertex_label,
                                                 history)
 
@@ -244,8 +243,8 @@ class gSpan(object):
                 forward_root[(maxtoc, e.elb, g.vertices[e.to].vlb)].append(
                     PDFS(g.gid, e, p))
 
-            # rmpath forward
-            for rmpath_i in rmpath:
+            # right_most_path forward
+            for rmpath_i in right_most_path:
                 edges = self.get_forward_rmpath_edges(g,
                                                       history.edges[rmpath_i],
                                                       min_vertex_label,
@@ -373,23 +372,22 @@ class gSpan(object):
         #     return False
 
         def project_is_min(projected):
-            DFScode_min.build_right_most_path()
-            rmpath = DFScode_min.right_most_path
+            right_most_path = DFScode_min.build_right_most_path()
             min_vlb = DFScode_min[0].vevlb[0]
-            maxtoc = DFScode_min[rmpath[0]].to
+            maxtoc = DFScode_min[right_most_path[0]].to
 
             backward_root = collections.defaultdict(Projected)
             flag, newto = False, 0,
-            for i in range(len(rmpath) - 1, 0 if self.is_undirected else -1, -1):
+            for i in range(len(right_most_path) - 1, 0 if self.is_undirected else -1, -1):
                 if flag:
                     break
                 for p in projected:
                     history = History(g, p)
-                    e = self.get_backward_edge(g, history.edges[rmpath[i]], history.edges[rmpath[0]], history)
+                    e = self.get_backward_edge(g, history.edges[right_most_path[i]], history.edges[right_most_path[0]], history)
                     if e != None:
                         #if self.verbose: print 'project_is_min: 6', e.frm, e.to
                         backward_root[e.elb].append(PDFS(g.gid, e, p))
-                        newto = DFScode_min[rmpath[i]].frm
+                        newto = DFScode_min[right_most_path[i]].frm
                         flag = True
 
             #if self.verbose: print 'project_is_min: 1', flag, DFScode_min.get_num_vertices(), len(DFScode_min)
@@ -407,7 +405,7 @@ class gSpan(object):
             flag, newfrm = False, 0
             for p in projected:
                 history = History(g, p)
-                edges = self.get_forward_pure_edges(g, history.edges[rmpath[0]], min_vlb, history)
+                edges = self.get_forward_pure_edges(g, history.edges[right_most_path[0]], min_vlb, history)
                 if len(edges) > 0:
                     flag = True
                     newfrm = maxtoc
@@ -415,7 +413,7 @@ class gSpan(object):
                         forward_root[(e.elb, g.vertices[e.to].vlb)].append(PDFS(g.gid, e, p))
 
             #if self.verbose: print 'project_is_min: 2', flag
-            for rmpath_i in rmpath:
+            for rmpath_i in right_most_path:
                 if flag:
                     break
                 for p in projected:
@@ -531,7 +529,7 @@ class DFScode(list):
             if frm < to and (old_from_vertex is None or to == old_from_vertex):
                 self.right_most_path.append(i)
                 old_from_vertex = frm
-        return self
+        return self.right_most_path
 
     def get_num_vertices(self):
         return len(set([dfsedge.frm for dfsedge in self] + [dfsedge.to for dfsedge in self]))
