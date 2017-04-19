@@ -210,71 +210,79 @@ class gSpan(object):
 
         self.report(projected)
 
-        num_vertices = self.DFScode.get_num_vertices()
-        right_most_path = self.DFScode.build_right_most_path()
-        maxtoc = self.DFScode[right_most_path[0]].to
+        # construct the right-most path of the DFS tree
+        right_most_path_bottom_up = self.DFScode.build_right_most_path()
+        right_most_path = right_most_path_bottom_up[::-1]
+        right_most_edge_index = right_most_path_bottom_up[0]
+        right_most_vertex = self.DFScode[right_most_edge_index].to
         min_vertex_label = self.DFScode[0].vevlb[0]
 
         forward_root = collections.defaultdict(Projected)
         backward_root = collections.defaultdict(Projected)
+        num_vertices = self.DFScode.get_num_vertices()
         for p in projected:
             g = self.graphs[p.gid]
             history = History(g, p)
             # backward
-            for rmpath_i in right_most_path[::-1]:
+            for edge_index in right_most_path:
                 e = self.get_backward_edge(g,
-                                           history.edges[rmpath_i],
-                                           history.edges[right_most_path[0]],
+                                           history.edges[edge_index],
+                                           history.edges[right_most_edge_index],
                                            history)
                 if e is not None:
-                    backward_root[(self.DFScode[rmpath_i].frm, e.elb)].append(
-                        PDFS(g.gid, e, p))
+                    backward_root[
+                        (self.DFScode[edge_index].frm, e.label)
+                    ].append(PDFS(g.gid, e, p))
 
             # pure forward
             if num_vertices >= self.max_num_vertices:
                 continue
 
-            edges = self.get_forward_pure_edges(g,
-                                                history.edges[right_most_path[0]],
-                                                min_vertex_label,
-                                                history)
+            edges = self.get_forward_pure_edges(
+                g, history.edges[right_most_edge_index],
+                min_vertex_label,
+                history)
 
             for e in edges:
-                forward_root[(maxtoc, e.elb, g.vertices[e.to].vlb)].append(
-                    PDFS(g.gid, e, p))
+                forward_root[
+                    (right_most_vertex, e.label, g.vertices[e.to].label)
+                ].append(PDFS(g.gid, e, p))
 
             # right_most_path forward
-            for rmpath_i in right_most_path:
+            for edge_index in right_most_path_bottom_up:
                 edges = self.get_forward_rmpath_edges(g,
-                                                      history.edges[rmpath_i],
+                                                      history.edges[edge_index],
                                                       min_vertex_label,
                                                       history)
 
                 for e in edges:
-                    forward_root[(
-                        self.DFScode[rmpath_i].frm,
-                        e.elb,
-                        g.vertices[e.to].vlb
-                    )].append(PDFS(g.gid, e, p))
+                    forward_root[
+                        (self.DFScode[edge_index].frm,
+                         e.label,
+                         g.vertices[e.to].label)
+                    ].append(PDFS(g.gid, e, p))
 
         # backward
-        for to, elb in backward_root:
+        for to, edge_label in backward_root:
             self.DFScode.append(
-                DFSedge(maxtoc,
-                        to,
-                        (VACANT_VERTEX_LABEL, elb, VACANT_VERTEX_LABEL)))
-            self.subgraph_mining(projected=backward_root[(to, elb)])
+                DFSedge(right_most_vertex, to,
+                        (VACANT_VERTEX_LABEL, edge_label, VACANT_VERTEX_LABEL)
+            ))
+            self.subgraph_mining(projected=backward_root[(to, edge_label)])
             self.DFScode.pop()
 
         # forward
         # if num_vertices >= self.max_num_vertices: # no need. because forward_root has no element.
         #     return
-        for frm, elb, vlb2 in forward_root:
+        for frm, edge_label, vertex_label in forward_root:
             self.DFScode.append(
                 DFSedge(frm,
-                        maxtoc+1,
-                        (VACANT_VERTEX_LABEL, elb, vlb2)))
-            self.subgraph_mining(forward_root[(frm, elb, vlb2)])
+                        right_most_vertex+1,
+                        (VACANT_VERTEX_LABEL, edge_label, vertex_label)
+            ))
+            self.subgraph_mining(forward_root[
+                (frm, edge_label, vertex_label)
+            ])
             self.DFScode.pop()
 
         return self
@@ -499,15 +507,23 @@ class DFScode(list):
         self.append(DFSedge(frm, to, vevlb))
         return self
 
-    def to_graph(self, gid = VACANT_GRAPH_ID, is_undirected = True):
-        g = Graph(gid, is_undirected = is_undirected, eid_auto_increment = True)
+    def to_graph(self, gid=VACANT_GRAPH_ID, is_undirected=True):
+        g = Graph(gid,
+                  is_undirected=is_undirected,
+                  eid_auto_increment=True)
+
         for dfsedge in self:
-            frm, to, (vlb1, elb, vlb2) = dfsedge.frm, dfsedge.to, dfsedge.vevlb
-            if vlb1 != VACANT_VERTEX_LABEL:
-                g.add_vertex(frm, vlb1)
-            if vlb2 != VACANT_VERTEX_LABEL:
-                g.add_vertex(to, vlb2)
-            g.add_edge(AUTO_EDGE_ID, frm, to, elb)
+            frm, to = dfsedge.frm, dfsedge.to
+            from_vertex_label, edge_label, to_vertex_label = dfsedge.vevlb
+
+            if from_vertex_label != VACANT_VERTEX_LABEL:
+                g.add_vertex(frm, from_vertex_label)
+
+            if to_vertex_label != VACANT_VERTEX_LABEL:
+                g.add_vertex(to, to_vertex_label)
+
+            g.add_edge(AUTO_EDGE_ID, frm, to, edge_label)
+            
         return g
 
     def from_graph(self, g):
@@ -544,7 +560,8 @@ class PDFS(object):
 
 class Projected(list):
     """docstring for Projected
-    Projected is a list of PDFS. Each element of Projected is a projection one frequent graph in one original graph.
+    Projected is a list of PDFS. Each element of Projected is a mapping 
+    of one frequent subgraph onto one original graph.
     """
     def __init__(self):
         super(Projected, self).__init__()
