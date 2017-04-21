@@ -247,7 +247,6 @@ class gSpan(object):
                                            history.edges[edge_index],
                                            history.edges[right_most_edge_index],
                                            history)
-                print(type(e))
                 if e is not None:
                     backward_root[
                         (self.DFScode[edge_index].frm, e.label)
