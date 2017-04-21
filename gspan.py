@@ -219,8 +219,6 @@ class gSpan(object):
             if self.verbose:
                 print('subgraph_mining: < min_support {}'.format(self.DFScode))
             return
-        else:
-            print(projected)
 
         if not self.is_min():
             #if self.verbose: print 'subgraph_mining: not min'
