@@ -16,6 +16,20 @@ class Edge(object):
         self.to = to
         self.elb = self.label = label
 
+    def __str__(self):
+        return '<graph.Edge(id({1})={0.eid}, ' \
+                           'e{2}=({0.frm: >5}, {0.to: >5}), ' \
+                           'label({3})={0.label})>'.format(
+            self,
+            type(self.eid),
+            (type(self.frm), type(self.to)),
+            type(self.label)
+        )
+
+    def __repr__(self):
+        return str(self)
+
+
 class Vertex(object):
     def __init__(self, vid=VACANT_VERTEX_ID, label=VACANT_VERTEX_LABEL):
         self.vid = vid
