@@ -7,16 +7,19 @@ VACANT_GRAPH_ID = -1
 AUTO_EDGE_ID = -1
 
 class Edge(object):
-    def __init__(self, eid = VACANT_EDGE_ID, frm = VACANT_VERTEX_ID, to = VACANT_VERTEX_ID, elb = VACANT_EDGE_LABEL):
+    def __init__(self, eid=VACANT_EDGE_ID,
+                 frm=VACANT_VERTEX_ID,
+                 to=VACANT_VERTEX_ID,
+                 label=VACANT_EDGE_LABEL):
         self.eid = eid
         self.frm = frm
         self.to = to
-        self.elb = self.label = elb
+        self.elb = self.label = label
 
 class Vertex(object):
-    def __init__(self, vid=VACANT_VERTEX_ID, vlb=VACANT_VERTEX_LABEL):
+    def __init__(self, vid=VACANT_VERTEX_ID, label=VACANT_VERTEX_LABEL):
         self.vid = vid
-        self.vlb = self.label = vlb
+        self.vlb = self.label = label
         self.edges = dict()
 
     def add_edge(self, eid, frm, to, elb):
@@ -24,7 +27,9 @@ class Vertex(object):
 
 
 class Graph(object):
-    def __init__(self, gid = VACANT_GRAPH_ID, is_undirected = True, eid_auto_increment = True):
+    def __init__(self, gid=VACANT_GRAPH_ID,
+                       is_undirected=True,
+                       eid_auto_increment=True):
         self.gid = gid
         self.is_undirected = is_undirected
         self.vertices = dict()
@@ -36,19 +41,19 @@ class Graph(object):
     def get_num_vertices(self):
         return len(self.vertices)
 
-    def add_vertex(self, vid, vlb):
+    def add_vertex(self, vid, label):
         if vid in self.vertices:
             return self
 
-        self.vertices[vid] = Vertex(vid, vlb)
-        self.vertex_label_set[vlb].add(vid)
+        self.vertices[vid] = Vertex(vid, label)
+        self.vertex_label_set[label].add(vid)
         return self
 
     def add_edge(self, eid, frm, to, edge_label):
-        if frm is self.vertices\
-            and to in self.vertices\
-            and to in self.vertices[frm].edges:
-                return self
+        if frm in self.vertices\
+           and to in self.vertices\
+           and to in self.vertices[frm].edges:
+               return self
 
         if self.eid_auto_increment:
             eid = self.counter.next()
@@ -129,9 +134,10 @@ class Graph(object):
         try:
             import networkx as nx
             import matplotlib.pyplot as plt
-        except Exception, e:
-            print 'Can not plot graph:', e
-            return
+        except Exception as e:
+            print('Can not plot graph: {}'.format(e))
+            raise
+
         gnx = nx.Graph() if self.is_undirected else nx.DiGraph()
         vlbs = {vid:v.vlb for vid, v in self.vertices.items()}
         elbs = {}

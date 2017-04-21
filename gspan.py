@@ -151,7 +151,7 @@ class gSpan(object):
 
                     # Make a note that this particular label triple has been
                     # encountered.
-                    vevlb_counted.add((g.gid, (vlb1, e.elb, vlb2)))
+                    vevlb_counted.add((g.gid, (vlb1, e.label, vlb2)))
 
         # remove infrequent vertices or add frequent vertices
         for vertex_label, cnt in vertex_label_counter.items():
@@ -229,6 +229,7 @@ class gSpan(object):
                                            history.edges[edge_index],
                                            history.edges[right_most_edge_index],
                                            history)
+                print(type(e))
                 if e is not None:
                     backward_root[
                         (self.DFScode[edge_index].frm, e.label)
@@ -307,29 +308,38 @@ class gSpan(object):
             g.plot()
 
         if self.where:
-            print 'where:', list(set([p.gid for p in projected]))
+            print('where: {}'.format(list(set([p.gid for p in projected]))))
 
         print('-' * 20)
 
     def get_backward_edge(self, g, e1, e2, history):
         if self.is_undirected and e1 == e2:
             return None
-        gsize = g.get_num_vertices()
+
+        # gsize = g.get_num_vertices()
         # assert e1.frm >= 0 and e1.frm < gsize
         # assert e1.to >= 0 and e1.to < gsize
         # assert e2.to >= 0 and e2.to < gsize
+
         for to, e in g.vertices[e2.to].edges.items():
             if history.has_edge(e.eid) or e.to != e1.frm:
                 continue
+
             # return e # ok? if reture here, then self.DFScodep[0] != DFScode_min[0] should be checked in is_min(). or:
             if self.is_undirected:
-                if e1.elb < e.elb or (e1.elb == e.elb and g.vertices[e1.to].vlb <= g.vertices[e2.to].vlb):
+                if e1.label < e.label\
+                    or (e1.label == e.label
+                        and g.vertices[e1.to].label <= g.vertices[e2.to].label):
                     return e
             else:
-                if g.vertices[e1.frm].vlb < g.vertices[e2.to] or (g.vertices[e1.frm].vlb == g.vertices[e2.to] and  e1.elb <= e.elb):
+                if g.vertices[e1.frm].label < g.vertices[e2.to]\
+                    or (g.vertices[e1.frm].label == g.vertices[e2.to]
+                        and e1.label <= e.label):
                     return e
+
             # if e1.elb < e.elb or (e1.elb == e.elb and g.vertices[e1.to].vlb <= g.vertices[e2.to].vlb):
             #     return e
+
         return None
 
     def get_forward_pure_edges(self, g, rm_edge, min_vlb, history):
@@ -439,7 +449,11 @@ class gSpan(object):
 
             forward_min_evlb = min(forward_root.keys())
             #if self.verbose: print 'project_is_min: 4', forward_min_evlb, newfrm
-            DFScode_min.append(DFSedge(newfrm, maxtoc + 1, (VACANT_VERTEX_LABEL, forward_min_evlb[0], forward_min_evlb[1])))
+            DFScode_min.append(DFSedge(
+                newfrm,
+                maxtoc + 1,
+                (VACANT_VERTEX_LABEL, forward_min_evlb[0], forward_min_evlb[1])
+            ))
             idx = len(DFScode_min) - 1
             if self.DFScode[idx] != DFScode_min[idx]:
                 return False
@@ -453,11 +467,20 @@ class gSpan(object):
         func_names = ['read_graphs', 'run']
         time_deltas = collections.defaultdict(float)
         for fn in func_names:
-            time_deltas[fn] = round(self.timestamps[fn + '_out'] - self.timestamps[fn + '_in'], 2)
-            #time_deltas[fn + '_c'] = round(self.timestamps[fn + '_c_out'] - self.timestamps[fn + '_c_in'], 2)
-        print 'Read:\t{} s'.format(time_deltas['read_graphs'])#, time_deltas['read_graphs_c'])
-        print 'Mine:\t{} s'.format(time_deltas['run'] - time_deltas['read_graphs'])#, time_deltas['run_c'] - time_deltas['read_graphs_c'])
-        print 'Total:\t{} s'.format(time_deltas['run'])#, time_deltas['run_c'])
+            time_deltas[fn] = round(self.timestamps[fn + '_out']
+                                    - self.timestamps[fn + '_in'], 2)
+            #time_deltas[fn + '_c'] = round(self.timestamps[fn + '_c_out']
+            #                       - self.timestamps[fn + '_c_in'], 2)
+        print('Read:\t{} s'.format(
+            time_deltas['read_graphs']))
+        # , time_deltas['read_graphs_c'])
+
+        print('Mine:\t{} s'.format(
+            time_deltas['run'] - time_deltas['read_graphs']))
+        # , time_deltas['run_c'] - time_deltas['read_graphs_c'])
+        print('Total:\t{} s'.format(
+            time_deltas['run']))
+        # , time_deltas['run_c'])
         return self
 
 
@@ -523,7 +546,7 @@ class DFScode(list):
                 g.add_vertex(to, to_vertex_label)
 
             g.add_edge(AUTO_EDGE_ID, frm, to, edge_label)
-            
+
         return g
 
     def from_graph(self, g):
@@ -548,7 +571,9 @@ class DFScode(list):
         return self.right_most_path
 
     def get_num_vertices(self):
-        return len(set([dfsedge.frm for dfsedge in self] + [dfsedge.to for dfsedge in self]))
+        from_vertices = [dfsedge.frm for dfsedge in self]
+        to_vertices = [dfsedge.to for dfsedge in self]
+        return len(set(from_vertices + to_vertices))
 
 
 class PDFS(object):
@@ -578,8 +603,9 @@ class History(object):
         self.edges = list()
         self.vertices_used = collections.defaultdict(int)
         self.edges_used = collections.defaultdict(int)
-        if pdfs == None:
+        if pdfs is None:
             return
+
         while pdfs:
             e = pdfs.edge
             self.edges.append(e)
