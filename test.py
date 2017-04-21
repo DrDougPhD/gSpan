@@ -61,17 +61,12 @@ class RandomGraph(object):
     def translate_by(self, offset):
         pass
 
-    def add_random_nodes(self, how_many=None, connect_to_num_nodes=None):
-        if how_many is None:
-            how_many = 1
-        if connect_to_num_nodes is None:
-            connect_to_num_nodes = 1
-
+    def add_random_nodes(self, how_many=1, connect_to_num_nodes=1):
         G = self.graph
 
         # generate new nodes
         starting_node_index = self.next_node_id
-        new_node_indices = list(range(starting_node_index, how_many))
+        new_node_indices = list(range(starting_node_index, starting_node_index+how_many))
         for node_id in new_node_indices:
             G.add_node(node_id, label=self.node_label_generator())
             self.last_node_id = node_id
@@ -80,8 +75,10 @@ class RandomGraph(object):
 
         # connect them up to pre-existing nodes
         final_edge_count = G.number_of_edges() + connect_to_num_nodes
+        print(new_node_indices)
         possible_edges = list(itertools.product(G.nodes(),
                                                 new_node_indices))
+        chosen_edges = None
         print(possible_edges)
         while G.number_of_edges() < final_edge_count:
             to_node = numpy.random.choice(new_node_indices)
@@ -166,7 +163,7 @@ class TestApproximateGraphIsomorphism(unittest.TestCase):
 
         graph1 = base_subgraph.copy()
         graph1.translate_by(offset=numpy.array([1,0]))
-        graph1.add_random_nodes(how_many=5, connect_to_num_nodes=3)
+        graph1.add_random_nodes(how_many=5, connect_to_num_nodes=4)
 
         print(base_subgraph)
         print(graph1)
