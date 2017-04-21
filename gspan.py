@@ -70,8 +70,8 @@ class gSpan(object):
                     root[(v.label, e.label, g.vertices[e.to].label)].append(
                         PDFS(gid, e, None))
 
-        print('Length of root: {}'.format(len(root)))
-        pprint.pprint(dict(root))
+        # print('Length of root: {}'.format(len(root)))
+        # pprint.pprint(dict(root))
 
         #if self.verbose: print 'run:', root.keys()
         for vevlb, projected in root.items():
@@ -200,13 +200,13 @@ class gSpan(object):
         result = []
         v_frm = g.vertices[frm]
 
-        print('.'*80)
-        print('Vertex: {}'.format(v_frm))
+        # print('.'*80)
+        # print('Vertex: {}'.format(v_frm))
 
         for to, e in v_frm.edges.items():
 
-            print('Edge: {0} -- {1}'.format(e, type(e)))
-            print('Points to Vertex: {0} -- {1}'.format(to, type(to)))
+            # print('Edge: {0} -- {1}'.format(e, type(e)))
+            # print('Points to Vertex: {0} -- {1}'.format(to, type(to)))
 
             if (not self.is_undirected) or v_frm.label <= g.vertices[to].label:
                 result.append(e)
@@ -216,8 +216,11 @@ class gSpan(object):
     def subgraph_mining(self, projected):
         self.support = self.get_support(projected)
         if self.support < self.min_support:
-            #if self.verbose: print 'subgraph_mining: < min_support', self.DFScode
+            if self.verbose:
+                print('subgraph_mining: < min_support {}'.format(self.DFScode))
             return
+        else:
+            print(projected)
 
         if not self.is_min():
             #if self.verbose: print 'subgraph_mining: not min'
@@ -315,7 +318,8 @@ class gSpan(object):
         self.frequent_subgraphs.append(copy.copy(self.DFScode))
         if self.DFScode.get_num_vertices() < self.min_num_vertices:
             return
-        g = self.DFScode.to_graph(gid = self.counter.next(), is_undirected = self.is_undirected)
+        g = self.DFScode.to_graph(gid=self.counter.next(),
+                                  is_undirected=self.is_undirected)
         g.display()
         print('\nSupport: {}'.format(self.support))
 
@@ -375,7 +379,9 @@ class gSpan(object):
         to_vlb = g.vertices[rm_edge.to].vlb
         for to, e in g.vertices[rm_edge.frm].edges.items():
             new_to_vlb = g.vertices[to].vlb
-            if rm_edge.to == e.to or min_vlb > new_to_vlb or history.has_vertex(e.to):
+            if rm_edge.to == e.to\
+                    or min_vlb > new_to_vlb\
+                    or history.has_vertex(e.to):
                 continue
             # result.append(e) # ok? or:
             # if self.is_undirected:
@@ -383,7 +389,8 @@ class gSpan(object):
             #         return e
             # else:
             #     return e
-            if rm_edge.elb < e.elb or (rm_edge.elb == e.elb and to_vlb <= new_to_vlb):
+            if rm_edge.elb < e.elb\
+                    or (rm_edge.elb == e.elb and to_vlb <= new_to_vlb):
                 result.append(e)
         return result
 
